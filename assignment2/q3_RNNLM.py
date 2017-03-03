@@ -26,12 +26,12 @@ class Config(object):
     """
     batch_size = 64
     embed_size = 50
-    hidden_size = 100
+    hidden_size = 250
     num_steps = 10
-    max_epochs = 20
+    max_epochs = 30
     early_stopping = 2
     dropout = 0.9
-    lr = 0.01
+    lr = 0.001
 
 
 class RNNLM_Model(LanguageModel):
@@ -267,7 +267,7 @@ class RNNLM_Model(LanguageModel):
                 b_1 = tf.get_variable("b_1", shape=[self.config.hidden_size], dtype=tf.float32)
                 state = tf.matmul(input, I) + tf.matmul(state, H) + b_1
                 # 激活
-                state = tf.nn.relu(state)
+                state = tf.nn.sigmoid(state)
                 rnn_outputs.append(state)
             self.final_state = rnn_outputs[-1]
 
