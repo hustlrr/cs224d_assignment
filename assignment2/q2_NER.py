@@ -42,11 +42,12 @@ class NERModel(LanguageModel):
 
     def load_data(self, debug=False):
         """Loads starter word-vectors and train/dev/test data."""
-        # Load the starter word vectors
+        # 加载词向量、词语对应的编号、词语编号对应的词语
         self.wv, word_to_num, num_to_word = ner.load_wv(
             'data/ner/vocab.txt', 'data/ner/wordVectors.txt')
+        # named entity classes
         tagnames = ['O', 'LOC', 'MISC', 'ORG', 'PER']
-        self.num_to_tag = dict(enumerate(tagnames))
+        self.num_to_tag = dict(enumerate(tagnames))  # 给类别编号
         tag_to_num = {v: k for k, v in self.num_to_tag.iteritems()}
 
         # Load the training set
@@ -158,7 +159,9 @@ class NERModel(LanguageModel):
         # The embedding lookup is currently only implemented for the CPU
         with tf.device('/cpu:0'):
             ### YOUR CODE HERE
+            # 将词语编号转换成词向量
             window = tf.nn.embedding_lookup(self.wv, self.input_placeholder)
+            # 将每个词语表示成窗口内的词向量的连接，所以每个输入的大小为 window_size*ebed_size
             window = tf.reshape(window, shape=[-1, self.config.window_size * self.config.embed_size])
             ### END YOUR CODE
             return window
@@ -192,7 +195,9 @@ class NERModel(LanguageModel):
         """
         ### YOUR CODE HERE
         l2_loss = tf.constant(0.0)
+        # name scope is ignored by tf.get_variable
         with tf.name_scope("Layer"):
+            # h=Wx+b1 --> h=relu(h) --> h_dropout = dropout(h)
             W = tf.get_variable(name="W",
                                 shape=[self.config.window_size * self.config.embed_size, self.config.hidden_size],
                                 dtype=tf.float32,
@@ -205,6 +210,7 @@ class NERModel(LanguageModel):
             self.h_dropout = tf.nn.dropout(x=self.h, keep_prob=self.dropout_placeholder)
 
         with tf.name_scope("Softmax"):
+            # y=softmax(Uh+b2)
             U = tf.get_variable(name="U", dtype=tf.float32,
                                 shape=[self.config.hidden_size, self.config.label_size],
                                 initializer=tf.contrib.layers.xavier_initializer())
@@ -310,7 +316,7 @@ class NERModel(LanguageModel):
         dp = 1
         losses = []
         results = []
-        if y is None:   # y如果是空或者全都是0，使用feed_dict时会报错
+        if y is None:  # y如果是空或者全都是0，使用feed_dict时会报错
             y = np.ones(shape=(len(X)), dtype=np.int32)
         if np.any(y):
             data = data_iterator(X, y, batch_size=self.config.batch_size,
@@ -332,7 +338,7 @@ class NERModel(LanguageModel):
         return np.mean(losses), results
 
 
-def print_confusion(confusion, num_to_tag):
+def print_confusion(confusion, num_to_tag):     # 打印混淆矩阵
     """Helper method that prints confusion matrix."""
     # Summing top to bottom gets the total number of tags guessed as T
     total_guessed_tags = confusion.sum(axis=0)
